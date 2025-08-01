@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:qr_code_scanner/qr_code_scanner.dart';
+import 'package:mobile_scanner/mobile_scanner.dart';
 import 'api_service.dart';
 
 class ScanQrPage extends StatefulWidget {
@@ -8,37 +8,33 @@ class ScanQrPage extends StatefulWidget {
 }
 
 class _ScanQrPageState extends State<ScanQrPage> {
-  final GlobalKey qrKey = GlobalKey(debugLabel: 'QR');
-  Barcode? result;
-  QRViewController? controller;
+  MobileScannerController cameraController = MobileScannerController();
+  String? result;
   String? apiInfo;
   bool scanning = false;
 
   @override
   void dispose() {
-    controller?.dispose();
+    cameraController.dispose();
     super.dispose();
   }
 
-  void _onQRViewCreated(QRViewController ctrl) {
-    controller = ctrl;
-    controller!.scannedDataStream.listen((scanData) async {
-      if (!scanning) {
-        setState(() {
-          scanning = true;
-        });
-        controller?.pauseCamera();
-
-        // Send to API and get info
-        final info = await ApiService.sendQrData(scanData.code ?? "");
-        setState(() {
-          result = scanData;
-          apiInfo = info;
-          scanning = false;
-        });
-        controller?.resumeCamera();
-      }
-    });
+  void _onDetect(BarcodeCapture barcodeCapture) async {
+    if (!scanning && barcodeCapture.barcodes.isNotEmpty) {
+      setState(() {
+        scanning = true;
+      });
+      
+      final code = barcodeCapture.barcodes.first.rawValue ?? "";
+      
+      // Send to API and get info
+      final info = await ApiService.sendQrData(code);
+      setState(() {
+        result = code;
+        apiInfo = info;
+        scanning = false;
+      });
+    }
   }
 
   @override
@@ -58,16 +54,9 @@ class _ScanQrPageState extends State<ScanQrPage> {
                 borderRadius: BorderRadius.circular(20),
                 border: Border.all(color: Colors.indigo, width: 3),
               ),
-              child: QRView(
-                key: qrKey,
-                onQRViewCreated: _onQRViewCreated,
-                overlay: QrScannerOverlayShape(
-                  borderColor: Colors.indigo,
-                  borderRadius: 12,
-                  borderLength: 30,
-                  borderWidth: 10,
-                  cutOutSize: 250,
-                ),
+              child: MobileScanner(
+                controller: cameraController,
+                onDetect: _onDetect,
               ),
             ),
           ),
@@ -80,7 +69,7 @@ class _ScanQrPageState extends State<ScanQrPage> {
                     'Scanned QR Data:',
                     style: TextStyle(fontWeight: FontWeight.bold),
                   ),
-                  SelectableText(result!.code ?? ""),
+                  SelectableText(result ?? ""),
                 ],
               ),
             ),
@@ -106,10 +95,10 @@ class _ScanQrPageState extends State<ScanQrPage> {
               textStyle: TextStyle(fontSize: 18),
             ),
             onPressed: () {
-              controller?.resumeCamera();
               setState(() {
                 result = null;
                 apiInfo = null;
+                scanning = false;
               });
             },
           ),
