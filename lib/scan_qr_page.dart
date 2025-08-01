@@ -3,8 +3,10 @@ import 'package:mobile_scanner/mobile_scanner.dart';
 import 'api_service.dart';
 
 class ScanQrPage extends StatefulWidget {
+  const ScanQrPage({super.key});
+
   @override
-  _ScanQrPageState createState() => _ScanQrPageState();
+  State<ScanQrPage> createState() => _ScanQrPageState();
 }
 
 class _ScanQrPageState extends State<ScanQrPage> {
@@ -24,9 +26,9 @@ class _ScanQrPageState extends State<ScanQrPage> {
       setState(() {
         scanning = true;
       });
-      
+
       final code = barcodeCapture.barcodes.first.rawValue ?? "";
-      
+
       // Send to API and get info
       final info = await ApiService.sendQrData(code);
       setState(() {
